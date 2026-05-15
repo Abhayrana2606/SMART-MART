@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#13ec25",
+            "background-light": "#f6f8f6",
+          },
+          fontFamily: {
+            "display": ["Plus Jakarta Sans"]
+          }
+        }
+      }
+    }
+  </script>
+  <script src="theme.js"></script>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body { min-height: 100dvh; }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-slate-900 min-h-screen font-display flex justify-center items-start overflow-y-auto w-full">
+<div class="relative flex h-auto min-h-screen w-full max-w-md mx-auto flex-col bg-slate-900 dark:bg-slate-950 overflow-x-hidden shadow-2xl pb-10">
+
+  <!-- Header -->
+  <div class="flex items-center p-6 pb-2 justify-between">
+    <button onclick="window.location.href='index.html'" class="text-white hover:text-primary transition-colors bg-white/10 rounded-full p-2">
+      <span class="material-symbols-outlined text-[20px]">close</span>
+    </button>
+    <button onclick="window.toggleTheme()" class="theme-toggle-btn text-white hover:text-primary transition-colors bg-white/10 rounded-full p-2 flex items-center justify-center">
+      <span class="material-symbols-outlined theme-icon text-[20px]">dark_mode</span>
+    </button>
+  </div>
+
+  <!-- Central Title -->
+  <div class="flex flex-col items-center pt-2 pb-6">
+    <div class="w-16 h-16 bg-[#00d053] rounded-full flex items-center justify-center mb-5 shadow-lg shadow-[#00d053]/40 ring-4 ring-white/10">
+      <span class="material-symbols-outlined text-white text-4xl font-extrabold">check</span>
+    </div>
+    <h3 class="text-white tracking-tight text-3xl font-extrabold leading-tight px-4 text-center">Payment Successful</h3>
+    <p class="text-white/60 text-sm font-semibold leading-normal pt-1 px-4 text-center">Thank you for shopping at SmartMart!</p>
+  </div>
+
+  <!-- Real Receipt Paper -->
+  <div class="mx-5 p-1 bg-white dark:bg-slate-800 rounded-2xl relative shadow-xl mt-2">
+    
+    <!-- Decorator ZigZag -->
+    <div class="absolute -top-1.5 left-0 w-full h-3 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIxMSIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0wIDBMMTAgMTBMMjAgMEgwWiIvPjwvc3ZnPg==')] dark:bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIxMSIgZmlsbD0iIzFlMjkyYyI+PHBhdGggZD0iTTAgMEwxMCAxMEwyMCAwaDBaIi8+PC9zdmc+')] bg-repeat-x"></div>
+
+    <div class="bg-white dark:bg-slate-800 rounded-[14px] p-6 pb-2" id="receiptCard">
+      <!-- Loading Skeleton initially -->
+      <div id="receiptSkeleton" class="animate-pulse space-y-4 py-8">
+         <div class="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mx-auto"></div>
+         <div class="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2 mx-auto"></div>
+         <div class="h-8 bg-slate-200 dark:bg-slate-700 rounded mt-8"></div>
+         <div class="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
+      </div>
+
+      <div id="receiptContent" class="hidden">
+        <!-- Secure Injection DOM -->
+      </div>
+      
+    </div>
+    
+  </div>
+
+  <!-- Notification Banner Element -->
+  <div id="contactBadge" class="hidden mx-5 mt-6 bg-primary/10 border border-primary/20 p-4 rounded-xl flex items-start gap-3">
+    <span class="material-symbols-outlined text-primary text-xl">mark_email_read</span>
+    <div>
+      <h4 class="text-primary font-extrabold text-sm mb-0.5">Receipt Automatically Sent</h4>
+      <p class="text-primary/80 font-bold text-xs" id="contactText">Sent securely</p>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="p-5 mt-auto space-y-3 pt-8">
+    <button id="downloadPdfBtn" class="w-full bg-white text-slate-900 font-extrabold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors shadow-lg shadow-white/10 active:scale-[0.98]">
+      <span class="material-symbols-outlined text-[20px]">download</span> Download PDF Document
+    </button>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+  async function loadSecureBill() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const apiBase = localStorage.getItem('smartmart_api_base') || 'http://localhost:5001';
+    let orderId = urlParams.get('orderId') || localStorage.getItem('smartmart_orderId');
+
+    if (!orderId) {
+      alert("Invalid payment sequence");
+      window.location.href = 'index.html';
+      return;
+    }
+
+    try {
+      const response = await fetch(`${apiBase}/api/receipt/${orderId}`);
+      if (!response.ok) throw new Error("Receipt fetch physically failed");
+      const data = await response.json();
+      
+      const order = data.order;
+      const items = data.items;
+
+      const dateStr = new Date(order.created_at + 'Z').toLocaleString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'
+      });
+
+      let itemsHtml = items.map(i => `
+        <div class="flex justify-between items-start mb-4 bg-slate-50 dark:bg-slate-700/50 p-3 rounded-xl border border-slate-100 dark:border-slate-600">
+          <div class="flex flex-col pr-4">
+            <span class="text-slate-900 dark:text-slate-100 text-sm font-extrabold leading-tight tracking-tight">${i.name}</span>
+            <span class="text-slate-400 dark:text-slate-400 text-xs font-bold mt-1 uppercase tracking-widest">${i.qty} Unit${i.qty > 1 ? 's' : ''} • ${i.brand || '--'}</span>
+          </div>
+          <span class="text-slate-900 dark:text-slate-100 text-sm font-extrabold pb-0.5 border-b border-primary/30">₹${(i.price * i.qty).toFixed(2)}</span>
+        </div>
+      `).join('');
+
+      document.getElementById('receiptContent').innerHTML = `
+        <div class="flex flex-col gap-1 mb-6 text-center">
+          <span class="text-slate-400 text-[10px] uppercase tracking-[0.2em] font-extrabold">Transaction Summary</span>
+          <span class="text-slate-800 dark:text-slate-100 text-3xl font-extrabold tracking-tight mt-1 mb-2">₹${order.total.toFixed(2)}</span>
+          <span class="text-primary bg-primary/10 self-center px-3 py-1 rounded-full text-[10px] font-extrabold ring-1 ring-primary/20 tracking-wider inline-flex items-center gap-1 uppercase">
+            <span class="material-symbols-outlined text-[13px]">beenhere</span> STATUS: ${order.status}
+          </span>
+        </div>
+        
+        <div class="border-t-2 border-dashed border-slate-100 dark:border-slate-700 my-6"></div>
+
+        <div class="space-y-3 mb-6 bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl text-xs font-semibold">
+          <div class="flex justify-between items-center text-slate-500 dark:text-slate-400">
+            <span>Transaction ID</span>
+            <span class="text-slate-900 dark:text-slate-100 font-mono tracking-wider">${order.order_id}</span>
+          </div>
+          <div class="flex justify-between items-center text-slate-500 dark:text-slate-400">
+            <span>Date Processed</span>
+            <span class="text-slate-900 dark:text-slate-100 font-mono tracking-wider">${dateStr}</span>
+          </div>
+        </div>
+
+        <div class="mb-4 text-[10px] uppercase tracking-widest font-extrabold text-slate-400">Purchased Inventory</div>
+        <div>
+          ${itemsHtml}
+        </div>
+
+        <div class="border-t-2 border-dashed border-slate-100 dark:border-slate-700 my-6"></div>
+
+        <div class="space-y-2 px-2 pb-4">
+          <div class="flex justify-between items-center text-slate-500 dark:text-slate-400 text-sm font-bold">
+            <span>Subtotal</span>
+            <span>₹${order.subtotal.toFixed(2)}</span>
+          </div>
+          <div class="flex justify-between items-center text-slate-500 dark:text-slate-400 text-sm font-bold">
+            <span>State Tax</span>
+            <span>₹${order.tax.toFixed(2)}</span>
+          </div>
+          <div class="pt-3 mt-3 border-t border-slate-100 dark:border-slate-700 flex justify-between items-end">
+            <span class="text-slate-900 dark:text-slate-100 text-sm font-extrabold uppercase tracking-widest">Total Value</span>
+            <span class="text-primary text-xl font-extrabold">₹${order.total.toFixed(2)}</span>
+          </div>
+        </div>
+      `;
+
+      if (order.customer_contact && order.customer_contact.trim() !== '') {
+        document.getElementById('contactText').textContent = 'Securely bound to ' + order.customer_contact;
+        document.getElementById('contactBadge').classList.remove('hidden');
+      }
+
+      document.getElementById('receiptSkeleton').classList.add('hidden');
+      document.getElementById('receiptContent').classList.remove('hidden');
+
+    } catch(err) {}
+  }
+
+  async function downloadBillPdf() {
+    const receipt = document.getElementById('receiptCard');
+    if (!receipt || !window.html2canvas || !window.jspdf) return;
+
+    const originTransform = receipt.style.transform;
+    receipt.style.transform = 'none';
+
+    const canvas = await html2canvas(receipt, {
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      scale: 2
+    });
+
+    receipt.style.transform = originTransform;
+
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 10;
+    const imgWidth = pageWidth - (margin * 2);
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    let y = margin;
+    if (imgHeight > pageHeight - (margin * 2)) {
+      const scale = (pageHeight - (margin * 2)) / imgHeight;
+      pdf.addImage(imgData, 'PNG', margin, y, imgWidth * scale, imgHeight * scale);
+    } else {
+      pdf.addImage(imgData, 'PNG', margin, y, imgWidth, imgHeight);
+    }
+
+    pdf.save('SmartMart-Secure-Receipt-' + Date.now() + '.pdf');
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    loadSecureBill();
+    document.getElementById('downloadPdfBtn').addEventListener('click', downloadBillPdf);
+  });
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js');
+    });
+  }
+</script>
+</body>
+</html>

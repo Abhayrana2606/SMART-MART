@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#13ec25",
+            "background-light": "#f6f8f6",
+            "background-dark": "#102212",
+          },
+          fontFamily: {
+            "display": ["Plus Jakarta Sans"]
+          }
+        }
+      }
+    }
+  </script>
+  <script src="theme.js"></script>
+  <link rel="manifest" href="manifest.json">
+  <title>SmartMart Admin Dashboard</title>
+</head>
+<body class="bg-background-light dark:bg-slate-900 font-display text-slate-900 dark:text-slate-100 min-h-screen">
+  <div class="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
+    <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <h1 class="text-3xl font-extrabold tracking-tight">SmartMart Analytics</h1>
+      <div class="flex items-center gap-3">
+        <button onclick="window.toggleTheme()" class="theme-toggle-btn bg-white dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white dark:text-slate-400 p-2.5 rounded-xl shadow-lg transition-transform active:scale-95 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
+          <span class="material-symbols-outlined theme-icon">dark_mode</span>
+        </button>
+        <button onclick="document.getElementById('productModal').classList.remove('hidden'); document.getElementById('productModal').classList.add('flex')" class="bg-primary text-slate-900 font-bold px-4 py-2.5 rounded-xl shadow-lg hover:bg-primary/90 flex items-center gap-2 transition-transform active:scale-95">
+          <span class="material-symbols-outlined font-bold text-xl">add</span> Add Inventory
+        </button>
+        <a href="index.html" class="bg-slate-900 text-white font-bold px-4 py-2.5 rounded-xl shadow-lg hover:bg-slate-800 flex items-center gap-2 transition-transform active:scale-95">
+          Launch Checkout <span class="material-symbols-outlined text-xl">arrow_forward</span>
+        </a>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Products Table -->
+      <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden flex flex-col h-[75vh]">
+        <div class="p-6 border-b border-slate-100 dark:border-slate-700 flex flex-col md:flex-row justify-between items-center bg-slate-50 dark:bg-slate-800/50 gap-4">
+          <h2 class="text-xl font-bold flex items-center gap-2"><span class="material-symbols-outlined">inventory_2</span> Active Catalog</h2>
+          <input type="text" id="searchInput" placeholder="Search by name, brand, or code..." class="rounded-xl border border-slate-200 dark:border-slate-600 px-4 py-2 text-sm w-full md:w-72 shadow-sm focus:ring-2 focus:ring-primary focus:outline-none bg-white dark:bg-slate-700 dark:text-white placeholder:text-slate-400">
+        </div>
+        <div class="flex-1 overflow-y-auto p-0 relative bg-slate-50 dark:bg-slate-900/50">
+          <table class="w-full text-left border-collapse bg-white dark:bg-slate-800">
+            <thead class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md sticky top-0 shadow-sm z-10 border-b border-slate-200 dark:border-slate-700">
+              <tr>
+                <th class="p-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">Image</th>
+                <th class="p-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">Product Identifier</th>
+                <th class="p-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider text-right">Price</th>
+                <th class="p-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="productsTableBody" class="divide-y divide-slate-100 dark:divide-slate-700 text-sm">
+              <!-- Dynamically Generated Content -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Recent Orders Timeline -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden flex flex-col h-[75vh]">
+        <div class="p-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-2">
+          <h2 class="text-xl font-bold flex items-center gap-2"><span class="material-symbols-outlined text-primary">monitoring</span> Live Revenue Feed</h2>
+        </div>
+        <div class="flex-1 overflow-y-auto px-6 py-4 space-y-3 bg-slate-50/50 dark:bg-slate-900/50" id="ordersList">
+          <!-- Dynamically Generated Content -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Component Secure Interface -->
+  <div id="productModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 backdrop-blur-sm">
+    <div class="w-full max-w-lg bg-white dark:bg-slate-900 rounded-[2rem] p-8 shadow-2xl mx-4">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-2xl font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2" id="modalTitle"><span class="material-symbols-outlined text-primary">qr_code</span> Add Catalog Entry</h3>
+        <button onclick="closeProductModal()" class="text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full p-1 transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <form id="productForm" class="space-y-5">
+        <div>
+          <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Globally Unique Barcode</label>
+          <input type="text" id="p_barcode" required placeholder="E.g. 8901491100011" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3 bg-slate-50 dark:bg-slate-800 dark:text-white focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-primary focus:outline-none transition-all placeholder:text-slate-400">
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Official Product Name</label>
+          <input type="text" id="p_name" required placeholder="E.g. Kurkure Masala Munch 90g" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3 bg-slate-50 dark:bg-slate-800 dark:text-white focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-primary focus:outline-none transition-all placeholder:text-slate-400">
+        </div>
+        <div class="grid grid-cols-2 gap-5">
+          <div>
+            <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Brand Tag</label>
+            <input type="text" id="p_brand" placeholder="E.g. PepsiCo" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3 bg-slate-50 dark:bg-slate-800 dark:text-white focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-primary focus:outline-none transition-all placeholder:text-slate-400">
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Pricing (₹)</label>
+            <input type="number" id="p_price" step="0.01" required placeholder="0.00" class="w-full font-bold text-lg rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 dark:text-primary focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-primary focus:outline-none transition-all appearance-none text-primary placeholder:text-slate-400">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Direct Image URL</label>
+          <input type="url" id="p_image" placeholder="https://..." class="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3 bg-slate-50 dark:bg-slate-800 dark:text-white focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-primary focus:outline-none transition-all text-xs placeholder:text-slate-400">
+        </div>
+        <button type="submit" class="mt-8 w-full bg-slate-900 hover:bg-slate-800 text-white font-extrabold py-4 rounded-xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+          Deploy to Grid <span class="material-symbols-outlined">publish</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "SmartMart POS",
+  "short_name": "SmartMart",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f6f8f6",
+  "theme_color": "#13ec25",
+  "description": "Secure Offline-Ready Smart Checkout Engine",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+CDxwYXRoIGZpbGw9IiMxM2VjMjUiIGQ9Ik0wIDBoNTEydjUxMkgweiIvPgo8cGF0aCBmaWxsPSIjRkZGIiBkPSJNMjg3IDExM0gxODZ2Mjg2aDEwMXptLTIgMEgzMjd2MjcyaC00MnoiLz4KPC9zdmc+",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

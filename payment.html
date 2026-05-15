@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#13ec25",
+            "razor": "#0366d6",
+            "background-light": "#f6f8f6",
+          },
+          fontFamily: {
+            "display": ["Plus Jakarta Sans"]
+          }
+        }
+      }
+    }
+  </script>
+  <script src="theme.js"></script>
+  <link rel="manifest" href="manifest.json">
+  <title>SmartMart Secure Checkout</title>
+  <style>
+    body {
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .modal-frame {
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.1) inset;
+    }
+  </style>
+</head>
+<body class="font-display text-slate-900 dark:text-slate-100">
+
+  <div class="w-full max-w-[24rem] bg-white dark:bg-slate-900 rounded-3xl modal-frame flex flex-col overflow-hidden relative shadow-2xl mx-4" id="paymentBox">
+    
+    <!-- Top Brand Header (Razor Blue) -->
+    <div class="bg-razor px-7 pt-7 pb-5 text-white relative shadow-inner">
+      <div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
+      <div class="flex items-center justify-between mb-4 relative z-10">
+        <h2 class="text-xl font-extrabold flex items-center gap-2 tracking-tight drop-shadow-sm">
+          <span class="material-symbols-outlined font-bold text-2xl">shield_locked</span>
+          SmartMart Secure Pay
+        </h2>
+        <div class="flex gap-2">
+          <button onclick="window.toggleTheme()" class="theme-toggle-btn text-white/70 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-1.5 flex items-center justify-center">
+            <span class="material-symbols-outlined theme-icon text-[18px]">dark_mode</span>
+          </button>
+          <button onclick="window.history.back()" class="text-white/70 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-1.5 flex items-center justify-center">
+            <span class="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+      </div>
+      <div class="relative z-10">
+        <p class="text-white/80 text-xs font-bold uppercase tracking-widest mb-1 shadow-black/50" id="orderIdLabel">Loading Order...</p>
+        <p class="text-4xl font-extrabold tracking-tight drop-shadow-md" id="paymentTotal">₹0.00</p>
+      </div>
+    </div>
+
+    <!-- Payment Types Tab Strategy -->
+    <div class="flex border-b border-slate-200 dark:border-slate-800 text-sm font-bold bg-slate-50/50 dark:bg-slate-800/50 shadow-[inset_0_-1px_0_rgba(0,0,0,0.05)]">
+      <button onclick="switchTab('card')" id="tabCard" class="flex-1 py-3.5 text-razor border-b-[3px] border-razor flex items-center justify-center gap-2 bg-white dark:bg-slate-900 transition-colors">
+        <span class="material-symbols-outlined text-[18px]">credit_card</span> Credit/Debit
+      </button>
+      <button onclick="switchTab('upi')" id="tabUpi" class="flex-1 py-3.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 border-b-[3px] border-transparent hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined text-[18px]">qr_code_scanner</span> UPI Interface
+      </button>
+    </div>
+
+    <!-- Active Form View (Cards module UI) -->
+    <div class="p-7 space-y-5" id="viewCard">
+      <div>
+        <label class="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest text-shadow-sm">Card Number</label>
+        <div class="relative group">
+          <input type="text" id="cardNumber" placeholder="0000 0000 0000 0000" maxlength="19" class="w-full pl-11 pr-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 focus:border-razor outline-none transition-all font-mono text-[15px] font-semibold tracking-wider placeholder:text-slate-300 dark:placeholder:text-slate-600 bg-slate-50 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-700/50 focus:bg-white z-10 relative">
+          <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-razor transition-colors z-20">credit_card</span>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-5">
+        <div>
+          <label class="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest text-shadow-sm">Expiry Date</label>
+          <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5" class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 focus:border-razor outline-none transition-all font-mono text-[15px] font-semibold tracking-wider text-center placeholder:text-slate-300 dark:placeholder:text-slate-600 bg-slate-50 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-700/50 focus:bg-white">
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest text-shadow-sm flex items-center justify-between">
+            Security CVV <span class="material-symbols-outlined text-[12px] opacity-70">info</span>
+          </label>
+          <input type="password" id="cardCvv" placeholder="•••" maxlength="4" class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 focus:border-razor outline-none transition-all font-mono text-[15px] font-extrabold tracking-[0.3em] text-center placeholder:text-slate-300 dark:placeholder:text-slate-600 placeholder:tracking-wider bg-slate-50 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-700/50 focus:bg-white">
+        </div>
+      </div>
+      <div>
+        <label class="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest text-shadow-sm">Cardholder Name (Optional)</label>
+        <input type="text" id="cardName" placeholder="Name on the card" class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 focus:border-razor outline-none transition-all text-[15px] font-bold placeholder:text-slate-300 dark:placeholder:text-slate-600 bg-slate-50 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-700/50 focus:bg-white">
+      </div>
+    </div>
+
+    <!-- Active Form View (UPI UI) -->
+    <div class="p-7 space-y-5 hidden" id="viewUpi">
+      <div class="text-center mb-2">
+        <div class="bg-slate-50 dark:bg-slate-800 inline-flex p-3 rounded-full mb-3 ring-4 ring-slate-50 dark:ring-slate-800">
+          <span class="material-symbols-outlined text-4xl text-razor">qr_code_2</span>
+        </div>
+        <p class="text-sm font-bold text-slate-600 dark:text-slate-300">Enter your Virtual Payment Address (VPA)</p>
+      </div>
+      <div>
+        <label class="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest text-shadow-sm">UPI ID</label>
+        <div class="relative group">
+          <input type="text" id="upiId" placeholder="username@upi" class="w-full pl-11 pr-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 focus:border-razor focus:ring-0 outline-none transition-all font-mono text-[15px] font-semibold tracking-wider placeholder:text-slate-300 dark:placeholder:text-slate-600 bg-slate-50 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-700/50 focus:bg-white z-10 relative">
+          <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-razor transition-colors z-20">alternate_email</span>
+        </div>
+      </div>
+      <p class="text-xs text-center text-slate-400 font-semibold mt-2 px-4 shadow-sm">We'll natively send a robust payment request to your connected UPI application.</p>
+    </div>
+
+    <!-- Sticky Pay Actions Floor -->
+    <div class="p-6 bg-slate-50 dark:bg-slate-800/50 mt-auto border-t border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
+       <span class="text-[10px] font-extrabold text-slate-400 flex items-center gap-1.5 uppercase tracking-wide leading-tight max-w-[100px] opacity-80">
+         <span class="material-symbols-outlined text-[14px]">lock</span> 256-Bit SSL Secured
+       </span>
+       <button id="payButton" onclick="processPayment()" class="bg-razor hover:bg-[#0256b8] text-white font-extrabold py-3.5 px-8 rounded-xl shadow-lg shadow-razor/20 transition-all active:scale-[0.97] flex items-center justify-center gap-2 min-w-[160px]">
+         Pay Now <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+       </button>
+    </div>
+
+    <!-- Simulated Bank Routing Overlay -->
+    <div id="processingLayer" class="absolute inset-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md z-50 flex flex-col items-center justify-center hidden opacity-0 transition-opacity duration-300">
+       <span class="material-symbols-outlined animate-spin text-razor text-[64px] mb-6 drop-shadow-sm">progress_activity</span>
+       <h3 class="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-2">Authenticating</h3>
+       <p class="text-sm font-bold text-slate-400 text-center px-8 leading-relaxed max-w-[280px]">Establishing secure connection with your banking institution. Please wait.</p>
+    </div>
+
+    <!-- Instant Success Confetti Overlay -->
+    <div id="successLayer" class="absolute inset-0 bg-[#00d053] z-50 flex flex-col items-center justify-center hidden text-white transition-all transform px-6 text-center duration-500 scale-95 opacity-0">
+       <div class="bg-white/20 p-4 rounded-full mb-6 shadow-inner ring-8 ring-white/10">
+         <span class="material-symbols-outlined text-white font-bold" style="font-size: 80px; align-items: center; justify-content: center; display: flex;">check</span>
+       </div>
+       <h3 class="text-3xl font-extrabold tracking-tight mb-2 drop-shadow-md">Payment Successful!</h3>
+       <p class="font-bold opacity-90 text-white/90 drop-shadow flex items-center justify-center gap-2">
+         Redirecting to receipt <span class="material-symbols-outlined animate-spin text-sm">rotate_right</span>
+       </p>
+    </div>
+  </div>
+
+  <script>
+    let currentOrderId = '';
+    const apiBase = localStorage.getItem('smartmart_api_base') || 'http://localhost:5001';
+
+    function loadContext() {
+      const urlParams = new URLSearchParams(window.location.search);
+      currentOrderId = urlParams.get('orderId') || localStorage.getItem('smartmart_orderId') || 'ORD-ERROR';
+      document.getElementById('orderIdLabel').textContent = 'Order #' + currentOrderId;
+
+      const rawTotals = localStorage.getItem('smartmart_totals');
+      if (rawTotals) {
+        try {
+          const t = JSON.parse(rawTotals);
+          document.getElementById('paymentTotal').textContent = `₹${Number(t.total).toFixed(2)}`;
+        } catch(e) {}
+      }
+
+      // Elegant structural auto-formatting binding
+      document.getElementById('cardNumber').addEventListener('input', function() {
+        let val = this.value.replace(/\D/g, '');
+        this.value = val.replace(/(\d{4})(?=\d)/g, '$1 ');
+      });
+
+      document.getElementById('cardExpiry').addEventListener('input', function() {
+        let val = this.value.replace(/\D/g, '');
+        if (val.length >= 2) this.value = val.substring(0, 2) + '/' + val.substring(2, 4);
+        else this.value = val;
+      });
+    }
+
+    let activePaymentType = 'card';
+
+    function switchTab(type) {
+      activePaymentType = type;
+      if (type === 'card') {
+        document.getElementById('viewCard').classList.remove('hidden');
+        document.getElementById('viewUpi').classList.add('hidden');
+        
+        document.getElementById('tabCard').className = 'flex-1 py-3.5 text-razor border-b-[3px] border-razor flex items-center justify-center gap-2 bg-white dark:bg-slate-900 transition-colors';
+        document.getElementById('tabUpi').className = 'flex-1 py-3.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 border-b-[3px] border-transparent hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors flex items-center justify-center gap-2';
+      } else {
+        document.getElementById('viewUpi').classList.remove('hidden');
+        document.getElementById('viewCard').classList.add('hidden');
+        
+        document.getElementById('tabUpi').className = 'flex-1 py-3.5 text-razor border-b-[3px] border-razor flex items-center justify-center gap-2 bg-white dark:bg-slate-900 transition-colors';
+        document.getElementById('tabCard').className = 'flex-1 py-3.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 border-b-[3px] border-transparent hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors flex items-center justify-center gap-2';
+      }
+    }
+
+    async function processPayment() {
+      if (activePaymentType === 'card') {
+        const cNum = document.getElementById('cardNumber').value.length;
+        const cExp = document.getElementById('cardExpiry').value.length;
+        const cCvv = document.getElementById('cardCvv').value.length;
+
+        if (cNum < 19 || cExp < 5 || cCvv < 3) {
+          alert("Please explicitly enter a 16-digit test card matching Visa/Mastercard structural formats!");
+          return;
+        }
+      } else {
+        const upi = document.getElementById('upiId').value.trim();
+        if (!upi.includes('@')) {
+          alert("Please enter a valid format UPI ID (e.g. name@okbank)!");
+          return;
+        }
+      }
+
+      // Render bank spinner cleanly via explicit CSS transitions natively
+      const procLayer = document.getElementById('processingLayer');
+      procLayer.classList.remove('hidden');
+      requestAnimationFrame(() => procLayer.classList.remove('opacity-0'));
+
+      try {
+        // Sleep 2.5sec validating psychological trust handshake dynamically
+        await new Promise(r => setTimeout(r, 2500));
+
+        // Transact POST checkout backend configuration mapped to native runtime globally
+        const res = await fetch(`${apiBase}/api/payment/confirm`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: currentOrderId, method: 'Card' })
+        });
+
+        if (!res.ok) throw new Error("Payment formally rejected by SQLite Database Instance!");
+
+        // Switch to success animation scaling gracefully
+        const successLayer = document.getElementById('successLayer');
+        procLayer.classList.add('opacity-0');
+        setTimeout(() => {
+          procLayer.classList.add('hidden');
+          successLayer.classList.remove('hidden');
+          requestAnimationFrame(() => {
+            successLayer.classList.remove('opacity-0', 'scale-95');
+          });
+        }, 150); // slight transition delay matching css natively
+
+        // Trigger dynamic page swap routing into generic receipt sequence
+        setTimeout(() => {
+          window.location.href = 'bill.html?orderId=' + currentOrderId;
+        }, 2200);
+
+      } catch (err) {
+        alert(err.message);
+        procLayer.classList.add('opacity-0');
+        setTimeout(() => procLayer.classList.add('hidden'), 300);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', loadContext);
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
+</body>
+</html>

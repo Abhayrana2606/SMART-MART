@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="https://unpkg.com/@zxing/browser@0.1.4"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap"
+    rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#13ec25",
+            "background-light": "#f6f8f6",
+            "background-dark": "#102212",
+          },
+          fontFamily: {
+            "display": ["Plus Jakarta Sans"]
+          },
+          borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+        },
+      },
+    }
+  </script>
+  <script src="theme.js"></script>
+  <link rel="manifest" href="manifest.json">
+  <title>SmartMart POS - Self Checkout</title>
+  <style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+
+    #quaggaViewport {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      z-index: 1 !important;
+    }
+
+    #quaggaViewport video,
+    #quaggaViewport>div {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+    }
+
+    #qr-shaded-region {
+      display: none !important;
+    }
+  </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+  <div class="flex flex-col lg:flex-row h-screen overflow-hidden">
+    <!-- Left Section: Scanner Area -->
+    <div class="relative flex-1 bg-black overflow-hidden flex flex-col">
+      <!-- Top Bar Overlaid on Scanner -->
+      <div
+        class="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
+        <button class="bg-white/10 backdrop-blur-md rounded-full p-2 text-white">
+          <span class="material-symbols-outlined">arrow_back</span>
+        </button>
+        <h1 class="text-white font-bold text-lg">SmartMart Scan</h1>
+        <div class="flex items-center gap-2">
+          <button onclick="window.toggleTheme()"
+            class="theme-toggle-btn bg-white/10 backdrop-blur-md rounded-full p-2 text-white hover:bg-white/20 transition-colors">
+            <span class="material-symbols-outlined theme-icon">dark_mode</span>
+          </button>
+          <button class="bg-white/10 backdrop-blur-md rounded-full p-2 text-white">
+            <span class="material-symbols-outlined">help</span>
+          </button>
+        </div>
+      </div>
+      <!-- Scanner Viewport Mockup -->
+      <div class="flex-1 flex items-center justify-center relative">
+        <!-- Live Camera Feed -->
+        <video id="cameraFeed" class="absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
+        <div id="quaggaViewport" class="absolute inset-0 w-full h-full hidden"></div>
+        <!-- Fallback Background Image (shown if camera denied/unavailable) -->
+        <div id="cameraFallback" class="absolute inset-0 bg-slate-800 flex items-center justify-center">
+          <div class="w-full h-full bg-cover bg-center opacity-70"
+            data-alt="Grocery store aisle perspective view for camera background"
+            style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA4xJvdfnQ85UDC7EW-QgoaM6Be38D-jBUwC7MhLGXMfYNoXWvHYCpjMvihcMIZllum07dWU2GKPJqgzEanDfjoKLKILpeB56PqtmpTMXzL4Tfo59sKvbDQwUf9Ujrb9IiJhrghw-aN4Ex6hGqiSurUou-Gz_kYuu0hNBUV6iJYzOebThew90aV324fv3_S6Hy05AvTEbwJnDbJtXfTEzGZLb5QqKkZiAyUrfEvn_h0kTcEpADsczPX_MlZKlAtLRnVQJPcfAHQ3Q')">
+          </div>
+        </div>
+        <!-- Scanning Frame -->
+        <div
+          class="relative z-0 w-64 h-64 md:w-80 md:h-80 border-2 border-primary rounded-xl flex items-center justify-center">
+          <div class="absolute inset-0 border-[40px] border-black/40 pointer-events-none"></div>
+          <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary -mt-1 -ml-1"></div>
+          <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary -mt-1 -mr-1"></div>
+          <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary -mb-1 -ml-1"></div>
+          <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary -mb-1 -mr-1"></div>
+          <!-- Scan Line -->
+          <div class="w-full h-1 bg-primary/80 shadow-[0_0_15px_#13ec25] absolute animate-pulse"></div>
+        </div>
+        <p class="absolute bottom-24 text-white text-sm bg-black/40 px-4 py-2 rounded-full backdrop-blur-sm">Align
+          barcode within the frame</p>
+        <div
+          class="absolute bottom-12 z-20 text-white text-[11px] bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm flex items-center gap-2">
+          <span id="scanStatusDot" class="inline-block w-2 h-2 rounded-full bg-red-400"></span>
+          <span id="scanStatusText">Scanner idle</span>
+          <span id="lastScanText" class="opacity-80"></span>
+        </div>
+        <div id="scanToast"
+          class="absolute top-16 left-1/2 -translate-x-1/2 z-20 hidden px-4 py-2 rounded-full text-xs font-semibold shadow-lg">
+        </div>
+      </div>
+      <!-- Scanner Controls -->
+      <div class="absolute bottom-6 left-0 right-0 flex justify-center gap-6 px-4">
+        <button class="flex flex-col items-center gap-1 group">
+          <div
+            class="bg-white/10 backdrop-blur-md rounded-full p-4 text-white group-active:bg-primary group-active:text-slate-900 transition-colors">
+            <span class="material-symbols-outlined">flashlight_on</span>
+          </div>
+          <span class="text-white text-xs font-medium">Flash</span>
+        </button>
+        <button class="flex flex-col items-center gap-1 group" id="enterCodeBtn">
+          <div
+            class="bg-white/10 backdrop-blur-md rounded-full p-4 text-white group-active:bg-primary group-active:text-slate-900 transition-colors">
+            <span class="material-symbols-outlined">keyboard</span>
+          </div>
+          <span class="text-white text-xs font-medium">Enter Code</span>
+        </button>
+        <button class="flex flex-col items-center gap-1 group"
+          onclick="alert('QR Code scanning is automatically supported! Just hold a standard QR code to the camera.')">
+          <div class="bg-white/10 backdrop-blur-md rounded-full p-4 text-white hover:bg-white/20 transition-colors">
+            <span class="material-symbols-outlined">qr_code_scanner</span>
+          </div>
+          <span class="text-white text-xs font-medium">QR Mode</span>
+        </button>
+        <button class="flex flex-col items-center gap-1 group">
+          <div
+            class="bg-white/10 backdrop-blur-md rounded-full p-4 text-white group-active:bg-primary group-active:text-slate-900 transition-colors">
+            <span class="material-symbols-outlined">history</span>
+          </div>
+          <span class="text-white text-xs font-medium">History</span>
+        </button>
+      </div>
+    </div>
+    <!-- Manual Entry Modal -->
+    <div id="manualEntryModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
+      <div class="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-2xl mx-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100">Enter Barcode</h3>
+          <button id="manualEntryClose" class="text-slate-500 hover:text-slate-900 dark:hover:text-white">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <input id="manualBarcodeInput" type="text" inputmode="numeric" placeholder="e.g. 737628064502"
+          class="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary" />
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Tip: If the camera scans, it will auto-fill here.</p>
+        <button id="manualBarcodeSubmit" class="mt-4 w-full bg-primary text-slate-900 font-bold py-3 rounded-xl">
+          Add Item
+        </button>
+      </div>
+    </div>
+    <!-- Right Section: Shopping Cart -->
+    <div class="w-full lg:w-[420px] bg-white dark:bg-background-dark flex flex-col shadow-2xl z-20">
+      <div class="p-6 border-b border-slate-100 dark:border-slate-800">
+        <div class="flex items-center justify-between mb-1">
+          <h2 class="text-2xl font-bold tracking-tight">Shopping Cart</h2>
+          <span class="bg-primary/20 text-slate-900 dark:text-primary font-bold px-3 py-1 rounded-full text-xs"
+            id="cartCount">3 ITEMS</span>
+        </div>
+        <p class="text-slate-500 text-sm">Review your items before checkout</p>
+      </div>
+      <!-- Items List -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4" id="cartList">
+        <div id="cartEmpty" class="text-center text-slate-500 dark:text-slate-400 text-sm py-10">
+          Your cart is empty. Scan an item to get started.
+        </div>
+      </div>
+      <!-- Checkout Summary and Button -->
+      <div class="p-6 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-background-dark space-y-4">
+        <div class="space-y-2">
+          <div class="flex justify-between text-slate-500 text-sm">
+            <span>Subtotal</span>
+            <span id="cartSubtotal">₹0.00</span>
+          </div>
+          <div class="flex justify-between text-slate-500 text-sm">
+            <span>Tax</span>
+            <span id="cartTax">₹0.00</span>
+          </div>
+          <div class="flex justify-between items-center pt-2">
+            <span class="font-bold text-lg">Total</span>
+            <span class="font-bold text-2xl text-slate-900 dark:text-slate-100" id="cartTotal">₹0.00</span>
+          </div>
+        </div>
+        <button onclick="proceedToPayment()"
+          class="w-full bg-primary hover:bg-primary/90 text-slate-900 font-extrabold py-4 rounded-xl flex items-center justify-center gap-2">
+
+          Finish Shopping
+
+          <span class="material-symbols-outlined">arrow_forward</span>
+
+        </button>
+        <div
+          class="flex items-center justify-center gap-2 text-[10px] text-slate-400 font-medium uppercase tracking-widest pt-2">
+          <span class="material-symbols-outlined text-xs">verified_user</span>
+          Secure Checkout by SmartMart
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="contactModal"
+    class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 backdrop-blur-sm px-4">
+    <div class="w-full max-w-[22rem] bg-white rounded-3xl p-7 shadow-2xl transform transition-all">
+      <div class="text-center mb-6">
+        <div
+          class="w-16 h-16 bg-primary/20 text-primary rounded-full flex items-center justify-center mx-auto mb-4 ring-8 ring-primary/5">
+          <span class="material-symbols-outlined text-3xl">receipt_long</span>
+        </div>
+        <h3 class="text-xl font-extrabold text-slate-900 mb-1 tracking-tight">Digital Receipt</h3>
+        <p class="text-[13px] font-bold text-slate-500">Where should we securely send your receipt copy?</p>
+      </div>
+      <form id="contactForm" class="space-y-4">
+        <input type="text" id="contactInput" placeholder="Enter Email or Phone No"
+          class="w-full rounded-2xl border-2 border-slate-200 px-4 py-3.5 font-bold text-slate-900 text-sm placeholder:text-slate-400 focus:border-primary focus:ring-0 outline-none transition-all text-center tracking-wide">
+        <div class="flex flex-col gap-2 pt-2">
+          <button type="submit"
+            class="w-full bg-slate-900 hover:bg-slate-800 text-white font-extrabold py-3.5 rounded-2xl shadow-xl transition-all active:scale-[0.98]">
+            Save Identity & Pay
+          </button>
+          <button type="button" onclick="executeSecureCheckout('')"
+            class="w-full text-slate-500 hover:text-slate-800 font-bold py-3 text-sm transition-colors rounded-xl">
+            Skip for now
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let scanLoopActive = false;
+    let barcodeDetector = null;
+    let quaggaActive = false;
+    const FALLBACK_IMAGE = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><rect width='100%25' height='100%25' fill='%23f1f5f9'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-size='14' font-family='Arial'>No Image</text></svg>";
+    const SCAN_CROP = { w: 0.8, h: 0.4 };
+    let scanCanvas = null;
+    let scanCtx = null;
+
+    function setScanStatus(text, ok) {
+      const dot = document.getElementById('scanStatusDot');
+      const label = document.getElementById('scanStatusText');
+      if (dot) dot.className = `inline-block w-2 h-2 rounded-full ${ok ? 'bg-green-400' : 'bg-red-400'}`;
+      if (label) label.textContent = text;
+    }
+
+    let lastScanTimeout = null;
+
+    function setLastScan(code, isVerifying = false) {
+      const el = document.getElementById('lastScanText');
+      if (el) {
+        if (code) {
+          el.textContent = isVerifying ? `Detecting: ${code}...` : `Last: ${code}`;
+        } else {
+          el.textContent = '';
+        }
+      }
+
+      clearTimeout(lastScanTimeout);
+      if (isVerifying) {
+        lastScanTimeout = setTimeout(() => {
+          if (el && el.textContent.includes('Detecting:')) el.textContent = '';
+        }, 1500);
+      }
+    }
+
+    async function initCamera() {
+      const video = document.getElementById('cameraFeed');
+      const fallback = document.getElementById('cameraFallback');
+      const quaggaViewport = document.getElementById('quaggaViewport');
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.warn('getUserMedia not supported by this browser.');
+        setScanStatus('Camera not supported', false);
+        return;
+      }
+
+      // Force universal standard camera bindings aggressively catching all hardware APIs
+      await startStandardCamera(video, fallback);
+    }
+
+    async function startStandardCamera(video, fallback) {
+      const quaggaViewport = document.getElementById('quaggaViewport');
+      if (quaggaViewport) quaggaViewport.classList.add('hidden');
+      if (video) video.classList.remove('hidden');
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+          audio: false
+        });
+        video.srcObject = stream;
+        await video.play();
+        if (fallback) fallback.style.display = 'none';
+
+        // Try to improve desktop focus/zoom if supported
+        const track = stream.getVideoTracks && stream.getVideoTracks()[0];
+        if (track && track.getCapabilities) {
+          const caps = track.getCapabilities();
+          const advanced = [];
+          if (caps.focusMode && caps.focusMode.includes('continuous')) {
+            advanced.push({ focusMode: 'continuous' });
+          }
+          if (caps.exposureMode && caps.exposureMode.includes('continuous')) {
+            advanced.push({ exposureMode: 'continuous' });
+          }
+          if (caps.zoom) {
+            const zoomTarget = Math.min(caps.zoom.max, 2);
+            advanced.push({ zoom: zoomTarget });
+          }
+          if (advanced.length) {
+            track.applyConstraints({ advanced }).catch(() => { });
+          }
+        }
+
+        if ('BarcodeDetector' in window) {
+          const supported = await BarcodeDetector.getSupportedFormats();
+          // Only use native engine if it actually explicitly supports retail barcodes natively
+          if (supported.includes('ean_13')) {
+            barcodeDetector = new BarcodeDetector({
+              formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'code_93', 'itf', 'qr_code', 'data_matrix']
+            });
+            setScanStatus('Scanner active (Native Engine)', true);
+            startBarcodeLoop(video, false);
+            return;
+          } else {
+            console.warn("Native BarcodeDetector exists but lacks EAN-13 support. Falling back to universal ZXing.");
+          }
+        }
+
+        if (window.ZXing) {
+          try {
+            const hints = new Map();
+            hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+              ZXing.BarcodeFormat.QR_CODE,
+              ZXing.BarcodeFormat.EAN_13,
+              ZXing.BarcodeFormat.EAN_8,
+              ZXing.BarcodeFormat.UPC_A,
+              ZXing.BarcodeFormat.UPC_E,
+              ZXing.BarcodeFormat.CODE_128,
+              ZXing.BarcodeFormat.CODE_39,
+              ZXing.BarcodeFormat.ITF,
+              ZXing.BarcodeFormat.DATA_MATRIX
+            ]);
+
+            const codeReader = new ZXing.BrowserMultiFormatReader(hints);
+            codeReader.timeBetweenDecodingAttempts = 30; // Ultra-fast hardware decoding
+
+            await codeReader.decodeFromVideoDevice(null, video, (result, err) => {
+              if (result) {
+                handleBarcode(result.getText());
+              }
+            });
+            setScanStatus('Scanner active (Universal Engine)', true);
+          } catch (e) {
+            console.error('ZXing error:', e);
+            setScanStatus('Scanner error', false);
+            if (fallback) fallback.style.display = 'block';
+          }
+        }
+      } catch (err) {
+        console.error('Camera access error:', err);
+        setScanStatus('Camera blocked', false);
+        if (fallback) {
+          fallback.style.display = 'flex';
+          fallback.innerHTML = '<div class="text-white text-sm p-2 rounded-lg bg-black/60">Camera access denied or unavailable. Please grant permission or use a secure context (HTTPS).</div>';
+        }
+      }
+    }
+
+    function startBarcodeLoop(video, useCrop) {
+      if (scanLoopActive || !barcodeDetector) return;
+      scanLoopActive = true;
+
+      const loop = async () => {
+        if (!scanLoopActive) return;
+        try {
+          let source = video;
+          if (useCrop && video.videoWidth && video.videoHeight) {
+            if (!scanCanvas) {
+              scanCanvas = document.createElement('canvas');
+              scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
+            }
+            const vw = video.videoWidth;
+            const vh = video.videoHeight;
+            const cw = Math.floor(vw * SCAN_CROP.w);
+            const ch = Math.floor(vh * SCAN_CROP.h);
+            const cx = Math.floor((vw - cw) / 2);
+            const cy = Math.floor((vh - ch) / 2);
+            scanCanvas.width = cw;
+            scanCanvas.height = ch;
+            scanCtx.drawImage(video, cx, cy, cw, ch, 0, 0, cw, ch);
+            source = scanCanvas;
+          }
+          const results = await barcodeDetector.detect(source);
+          if (results && results.length > 0) {
+            handleBarcode(results[0].rawValue);
+          }
+        } catch (e) {
+          console.error('BarcodeDetector error:', e);
+          scanLoopActive = false;
+          return;
+        }
+        requestAnimationFrame(loop);
+      };
+
+      requestAnimationFrame(loop);
+    }
+
+    function startHtml5Qrcode(video, fallback) {
+      if (quaggaActive) return;
+      quaggaActive = true;
+
+      if (video) video.classList.add('hidden');
+      const container = document.getElementById('quaggaViewport');
+      container.classList.remove('hidden');
+      if (fallback) fallback.style.display = 'none';
+
+      setScanStatus('Scanner starting (Html5Qrcode)', true);
+
+      const html5QrCode = new Html5Qrcode("quaggaViewport");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 30
+        },
+        (decodedText) => {
+          handleBarcode(decodedText);
+        },
+        (errorMessage) => {
+          // Ignored to prevent spamming
+        }
+      ).then(() => {
+        setScanStatus('Scanner active (QR & Barcode)', true);
+      }).catch((err) => {
+        console.error(err);
+        setScanStatus('Scanner error', false);
+      });
+    }
+
+    function goToPayment() {
+      alert('Proceeding to Payment Screen');
+    }
+
+    function updateCartCount() {
+      const badge = document.getElementById('cartCount');
+      if (!badge) return;
+      const count = cartItems.length;
+      badge.textContent = `${count} ITEMS`;
+    }
+
+    function updateEmptyState() {
+      const emptyEl = document.getElementById('cartEmpty');
+      if (!emptyEl) return;
+      emptyEl.style.display = cartItems.length === 0 ? 'block' : 'none';
+    }
+
+    const cartItems = [];
+    let cartItemId = 1;
+
+    function saveCart() {
+      const payload = {
+        items: cartItems,
+        updatedAt: Date.now()
+      };
+      localStorage.setItem('smartmart_cart', JSON.stringify(payload));
+    }
+
+    function loadCart() {
+      const storedCart = localStorage.getItem('smartmart_cart');
+      if (storedCart) {
+        const payload = JSON.parse(storedCart);
+        if (payload && Array.isArray(payload.items)) {
+          payload.items.forEach(item => {
+            // Re-add items to cart using addItemToCart to ensure UI is updated
+            // and event listeners are bound.
+            // Note: This assumes addItemToCart can handle existing items or
+            // that we clear cartItems before loading. For simplicity,
+            // we'll just add them as new.
+            // A more robust solution might involve a separate `renderCartItem` function.
+            addItemToCart(item);
+          });
+        }
+      }
+      updateEmptyState();
+      updateCartCount();
+      updateTotals();
+    }
+
+    function updateTotals() {
+      const subtotalEl = document.getElementById('cartSubtotal');
+      const taxEl = document.getElementById('cartTax');
+      const totalEl = document.getElementById('cartTotal');
+      if (!subtotalEl || !taxEl || !totalEl) return;
+
+      const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const tax = 0;
+      const total = subtotal + tax;
+
+      localStorage.setItem('smartmart_totals', JSON.stringify({ subtotal, tax, total }));
+      subtotalEl.textContent = `₹${subtotal.toFixed(2)}`;
+      taxEl.textContent = `₹${tax.toFixed(2)}`;
+      totalEl.textContent = `₹${total.toFixed(2)}`;
+    }
+
+    function addItemToCart(product) {
+      const list = document.getElementById('cartList');
+      if (!list) return;
+
+      const name = product.name || 'Unknown Product';
+      const brand = product.brand || 'Unknown Brand';
+      const image = product.image || '';
+      const price = Number.isFinite(product.price) ? product.price : 0;
+      const barcode = product.barcode || '';
+      const qty = product.qty || 1; // Use existing quantity if loading from storage
+      const key = `${name}|${brand}|${price}`;
+
+      const existing = cartItems.find((i) => i.key === key);
+      if (existing) {
+        existing.qty += qty; // Add to existing quantity
+        if (existing.qtyEl) existing.qtyEl.textContent = String(existing.qty);
+        saveCart();
+        updateCartCount();
+        updateTotals();
+        return;
+      }
+
+      const item = document.createElement('div');
+      item.className = 'flex items-center gap-4 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl';
+
+      const id = cartItemId++;
+
+      item.innerHTML = `
+    <div class="size-16 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center p-1 overflow-hidden">
+      <img class="w-full h-full object-cover rounded" alt="${name}" src="${image || FALLBACK_IMAGE}">
+    </div>
+    <div class="flex-1 min-w-0">
+      <h4 class="font-semibold text-slate-900 dark:text-slate-100 truncate">${name}</h4>
+      <p class="text-xs text-slate-500 truncate">${brand}</p>
+      <p class="text-primary font-bold">₹${price.toFixed(2)}</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button class="p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-red-500 transition-colors" data-action="remove" aria-label="Remove item">
+        <span class="material-symbols-outlined text-sm">delete</span>
+      </button>
+      <div class="flex items-center bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+      <button class="p-2 text-slate-500 hover:text-primary transition-colors" data-action="decrease">
+        <span class="material-symbols-outlined text-sm">remove</span>
+      </button>
+      <span class="w-6 text-center font-bold text-sm" data-role="qty">${qty}</span>
+      <button class="p-2 text-slate-500 hover:text-primary transition-colors" data-action="increase">
+        <span class="material-symbols-outlined text-sm">add</span>
+      </button>
+      </div>
+    </div>
+  `;
+
+      item.dataset.itemId = String(id);
+      list.prepend(item);
+      cartItems.push({ id, key, name, brand, price, qty, barcode, itemEl: item, qtyEl: item.querySelector('[data-role="qty"]') });
+      updateEmptyState();
+      saveCart();
+      updateCartCount();
+      updateTotals();
+
+      const qtyEl = item.querySelector('[data-role="qty"]');
+      const decBtn = item.querySelector('[data-action="decrease"]');
+      const incBtn = item.querySelector('[data-action="increase"]');
+      const removeBtn = item.querySelector('[data-action="remove"]');
+      const imgEl = item.querySelector('img');
+
+      if (imgEl) {
+        imgEl.addEventListener('error', () => {
+          imgEl.src = FALLBACK_IMAGE;
+        }, { once: true });
+      }
+
+      if (removeBtn) {
+        removeBtn.addEventListener('click', () => {
+          const idx = cartItems.findIndex((i) => i.id === id);
+          if (idx === -1) return;
+          cartItems.splice(idx, 1);
+          item.remove();
+          updateEmptyState();
+          saveCart();
+          updateCartCount();
+          updateTotals();
+        });
+      }
+
+      if (decBtn) {
+        decBtn.addEventListener('click', () => {
+          const idx = cartItems.findIndex((i) => i.id === id);
+          if (idx === -1) return;
+          cartItems[idx].qty -= 1;
+          if (cartItems[idx].qty <= 0) {
+            cartItems.splice(idx, 1);
+            item.remove();
+            updateEmptyState();
+          } else if (qtyEl) {
+            qtyEl.textContent = String(cartItems[idx].qty);
+          }
+          saveCart();
+          updateCartCount();
+          updateTotals();
+        });
+      }
+
+      if (incBtn) {
+        incBtn.addEventListener('click', () => {
+          const idx = cartItems.findIndex((i) => i.id === id);
+          if (idx === -1) return;
+          cartItems[idx].qty += 1;
+          if (qtyEl) qtyEl.textContent = String(cartItems[idx].qty);
+          saveCart();
+          updateCartCount();
+          updateTotals();
+        });
+      }
+    }
+
+    function proceedToPayment() {
+      saveCart();
+      if (cartItems.length === 0) {
+        alert("Your cart is empty!");
+        return;
+      }
+      document.getElementById('contactModal').classList.remove('hidden');
+      document.getElementById('contactModal').classList.add('flex');
+    }
+
+    document.getElementById('contactForm')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const contact = document.getElementById('contactInput').value.trim();
+      executeSecureCheckout(contact);
+    });
+
+    async function executeSecureCheckout(customerContact) {
+      document.getElementById('contactModal').classList.add('hidden');
+      document.getElementById('contactModal').classList.remove('flex');
+
+      const checkoutBtn = document.querySelector('button[onclick="proceedToPayment()"]');
+      const oldText = checkoutBtn ? checkoutBtn.innerHTML : '';
+      if (checkoutBtn) checkoutBtn.innerHTML = 'Securely Checking Out...';
+
+      try {
+        const apiBase = getApiBase();
+        const itemsPayload = cartItems.map(item => ({ barcode: item.barcode, qty: item.qty }));
+
+        const response = await fetch(`${apiBase}/checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: itemsPayload, customerContact })
+        });
+
+        if (!response.ok) throw new Error("Checkout statically failed");
+
+        const data = await response.json();
+        localStorage.setItem('smartmart_totals', JSON.stringify({ subtotal: data.subtotal, tax: data.tax, total: data.total }));
+        localStorage.setItem('smartmart_orderId', data.orderId);
+
+        window.location.href = 'payment.html?orderId=' + data.orderId;
+      } catch (err) {
+        alert('Checkout failed! Please try again.');
+        if (checkoutBtn) checkoutBtn.innerHTML = oldText;
+      }
+    }
+
+    function openManualEntry() {
+      const modal = document.getElementById('manualEntryModal');
+      const input = document.getElementById('manualBarcodeInput');
+      if (!modal || !input) return;
+      input.value = lastScan.code || '';
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      input.focus();
+    }
+
+    function closeManualEntry() {
+      const modal = document.getElementById('manualEntryModal');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function submitManualEntry() {
+      const input = document.getElementById('manualBarcodeInput');
+      if (!input) return;
+      const barcode = input.value.trim();
+      if (!barcode) return;
+      await handleBarcode(barcode, true);
+      closeManualEntry();
+    }
+
+    let lastScan = { code: '', time: 0 };
+    let scanInFlight = false;
+    let lastAccepted = { code: '', time: 0 };
+    const recentScans = new Map();
+
+    function isValidEAN13(code) {
+      if (!/^\d{13}$/.test(code)) return false;
+      const digits = code.split('').map((d) => parseInt(d, 10));
+      const check = digits.pop();
+      let sum = 0;
+      for (let i = 0; i < digits.length; i++) {
+        sum += digits[i] * (i % 2 === 0 ? 1 : 3);
+      }
+      const calc = (10 - (sum % 10)) % 10;
+      return check === calc;
+    }
+
+    function shouldAcceptScan(code) {
+      const now = Date.now();
+
+      // Cooldown to avoid spamming the exact same barcode instantly
+      if (lastAccepted.code === code && now - lastAccepted.time < 1000) return false;
+
+      // Require same code seen at least twice within 3 seconds to eliminate random misreads
+      const entry = recentScans.get(code) || { count: 0, time: now };
+      const withinWindow = now - entry.time < 3000;
+      const nextCount = withinWindow ? entry.count + 1 : 1;
+      recentScans.set(code, { count: nextCount, time: now });
+
+      // Accept in a single take for fast scanning
+      lastAccepted = { code, time: now };
+      return true;
+    }
+
+    function playBeep() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        oscillator.type = 'sine';
+        oscillator.frequency.value = 880;
+        gain.gain.value = 0.1;
+        oscillator.connect(gain);
+        gain.connect(audioCtx.destination);
+        oscillator.start();
+        setTimeout(() => {
+          oscillator.stop();
+          audioCtx.close();
+        }, 120);
+      } catch (e) {
+        // Ignore audio errors (e.g., autoplay restrictions)
+      }
+    }
+
+    let toastTimer = null;
+    function showToast(message, ok) {
+      const el = document.getElementById('scanToast');
+      if (!el) return;
+      el.textContent = message;
+      el.className = `absolute top-16 left-1/2 -translate-x-1/2 z-20 px-4 py-2 rounded-full text-xs font-semibold shadow-lg ${ok ? 'bg-primary text-slate-900' : 'bg-red-500 text-white'}`;
+      el.classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        el.classList.add('hidden');
+      }, 1600);
+    }
+
+    function getApiBase() {
+      const stored = localStorage.getItem('smartmart_api_base');
+      if (stored) return stored.replace(/\/$/, '');
+
+      const host = window.location.hostname;
+      if (host && host !== 'localhost' && host !== '127.0.0.1') {
+        const input = prompt('Enter backend URL (example: https://your-backend.trycloudflare.com)', '');
+        if (input) {
+          const cleaned = input.replace(/\/$/, '');
+          localStorage.setItem('smartmart_api_base', cleaned);
+          return cleaned;
+        }
+      }
+      return 'http://localhost:5001';
+    }
+
+    async function handleBarcode(barcode, isManual = false) {
+      const cleaned = String(barcode || '').trim();
+      if (!cleaned) return;
+
+      if (!isManual) {
+        if (!shouldAcceptScan(cleaned)) {
+          setLastScan(cleaned, true);
+          return;
+        }
+      }
+
+      setLastScan(cleaned, false);
+      const manualInput = document.getElementById('manualBarcodeInput');
+      if (manualInput) manualInput.value = cleaned;
+
+      const now = Date.now();
+      if (lastScan.code === cleaned && now - lastScan.time < 1000) return;
+      if (scanInFlight) return;
+
+      lastScan = { code: cleaned, time: now };
+      scanInFlight = true;
+
+      try {
+        const apiBase = getApiBase();
+        const response = await fetch(`${apiBase}/scan/${encodeURIComponent(cleaned)}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          scanInFlight = false;
+          showToast('Product not found', false);
+          return;
+        }
+
+        addItemToCart(data);
+        playBeep();
+        const label = data && data.name ? `Added: ${data.name}` : 'Product added successfully';
+        showToast(label, true);
+        console.log('Scanned product:', data);
+      } catch (err) {
+        console.error('Scan error:', err);
+        showToast('Backend not reachable', false);
+      } finally {
+        scanInFlight = false;
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', initCamera);
+    window.addEventListener('DOMContentLoaded', loadCart);
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const enterBtn = document.getElementById('enterCodeBtn');
+      const modalClose = document.getElementById('manualEntryClose');
+      const modalSubmit = document.getElementById('manualBarcodeSubmit');
+      const modal = document.getElementById('manualEntryModal');
+      const manualInput = document.getElementById('manualBarcodeInput');
+
+      if (enterBtn) enterBtn.addEventListener('click', openManualEntry);
+      if (modalClose) modalClose.addEventListener('click', closeManualEntry);
+      if (modal) modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeManualEntry();
+      });
+      if (modalSubmit) modalSubmit.addEventListener('click', submitManualEntry);
+      if (manualInput) {
+        manualInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') submitManualEntry();
+        });
+      }
+      updateEmptyState();
+      updateCartCount();
+      updateTotals();
+    });
+  </script>
+</body>
+
+</html>
